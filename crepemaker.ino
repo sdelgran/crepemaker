@@ -1,75 +1,95 @@
+// The user.h file contains user-definable compiler options
+// It must be located in the same folder as this file
+#include "user.h"
+
+// libraries to be installed from the library manager
 #include "max6675.h"
 
-#define DP 1  // decimal places for output on serial port
-#define D_MULT 0.001 // multiplier to convert temperatures from int to float
+// other compile directives
+#define LOOPTIME 1000 // cycle time, in ms
 
-// used in main loop
-float timestamp = 0;
-boolean first;
+// global variables and objects
+MAX6675 thermocouple1(CLKPIN, CS1PIN, DOPIN);
+MAX6675 thermocouple2(CLKPIN, CS2PIN, DOPIN);
+float previoustemp1 = 0;
+float previoustemp2 = 0;
+unsigned long timestamp = 0;
+int counter = 0;
 
-int thermoDO = 8;
-int thermoCLK = 10;
-
-int thermoCS1 = 5;
-int thermoCS2 = 9;
-
-MAX6675 thermocouple1(thermoCLK, thermoCS1, thermoDO);
-MAX6675 thermocouple2(thermoCLK, thermoCS2, thermoDO);
-  
 void setup() {
-  Serial.begin(57600);
-  Serial.println("temp1,temp2");
-  // wait for MAX chip to stabilize
+  pinMode(SSR1PIN, OUTPUT);
+  pinMode(SSR2PIN, OUTPUT);
+
+  Serial.begin(BAUD);
+  Serial.println("temp1,temp2,ror1,ror2,correctedtemp1,corectedtemp2");
+  
+  // wait for MAX chips to stabilize
   delay(500);
 }
 
-// T1, T2 = temperatures x 1000
-// t1, t2 = time marks, milliseconds
-// ---------------------------------------------------
-float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
-  int32_t dt = t2 - t1;
-  if( dt == 0 ) return 0.0;  // fixme -- throw an exception here?
-  float dT = (T2 - T1) * D_MULT;
-  float dS = dt * 0.001; // convert from milli-seconds to seconds
-  return ( dT / dS ) * 60.0; // rise per minute
-}
+void loop() {  
+  unsigned long timeelapsed = 0;
+  float temp1;
+  float temp2;
+  float ror1;
+  float ror2;
+  float correctedtemp1;
+  float correctedtemp2;
 
-// ------------------------------------------------------------------
-void logger()
-{
-  int i;
-  float RoR,t1,t2;
-  float rx;
+  temp1 = thermocouple1.readCelsius();
+  temp2 = 0; //thermocouple2.readCelsius(); -- disabled --
 
-  // print timestamp from when samples were taken
-  Serial.print( timestamp, DP );
-
-  // print temperature, rate for each channel
-  Serial.print(",");
-   
-  i = 0;
-  Serial.print( t1 = D_MULT*temps[i], DP );
-  Serial.print(",");
-  RoR = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
-  RoR = fRoR[i].doFilter( RoR /  D_MULT ) * D_MULT; // perform post-filtering on RoR values
-  Serial.print( RoR , DP );
-  i++;
-
-  Serial.print(",");
-  Serial.print( t2 = D_MULT * temps[i], DP );
-  Serial.print(",");
-  rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
-  rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
-  Serial.print( rx , DP );
-  i++;
+  if (counter >= SAMPLING) {
+    timeelapsed = (millis() - timestamp);
+    ror1 = (((temp1 - previoustemp1) / timeelapsed) * 1000 * 60); //Raise of rise in C/min  
+    ror2 = (((temp2 - previoustemp2) / timeelapsed) * 1000 * 60); //Raise of rise in C/min  
+    timestamp = millis();
+    counter = 0;
+    previoustemp1 = temp1; // We should really calculate an average rather...
+    previoustemp2 = temp2;    
+  }
   
-  Serial.println();
-};
+  counter++;
 
-void loop() {
-   Serial.print(thermocouple1.readCelsius());
-   Serial.print(",");
-   Serial.println(thermocouple2.readCelsius());
+  if (ror1 >= 0) {
+    correctedtemp1 = (temp1 + (ror1 * RISEINERTIA));
+  }
+  else {
+    correctedtemp1 = (temp1 + (ror1 * FALLINERTIA));
+  }
 
-   delay(1000);
+  if (ror2 >= 0) {
+    correctedtemp2 = (temp2 + (ror2 * RISEINERTIA));
+  }
+  else {
+    correctedtemp2 = (temp2 + (ror2 * FALLINERTIA));
+  }
+
+  Serial.print(temp1);
+  Serial.print(",");
+  Serial.print(temp2);
+  Serial.print(",");
+  Serial.print(ror1);
+  Serial.print(",");
+  Serial.print(ror2);
+  Serial.print(",");
+  Serial.print(correctedtemp1);
+  Serial.print(",");
+  Serial.println(correctedtemp2);
+
+  if (correctedtemp1  <= SV1) {
+   digitalWrite(SSR2PIN, LOW); 
+   digitalWrite(SSR1PIN, HIGH); 
+  } 
+  else {
+     digitalWrite(SSR1PIN, LOW); 
+
+    if (correctedtemp2 <= SV2) {
+     digitalWrite(SSR2PIN, HIGH); 
+    }
+    else {
+      digitalWrite(SSR2PIN, LOW); 
+    }
+  }
+  delay(LOOPTIME);
 }
