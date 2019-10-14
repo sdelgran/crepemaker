@@ -1,3 +1,4 @@
+
 // The user.h file contains user-definable compiler options
 // It must be located in the same folder as this file
 #include "user.h"
@@ -6,7 +7,7 @@
 #include "max6675.h"
 
 // other compile directives
-#define LOOPTIME 1000 // cycle time, in ms
+#define LOOPTIME 500 // cycle time, in ms
 
 // global variables and objects
 MAX6675 thermocouple1(CLKPIN, CS1PIN, DOPIN);
@@ -17,7 +18,7 @@ float previoustemp2 = 0;
 unsigned long timestamp = 0;
 int counter = 0;
 
-void seriallogger(float temp1, float temp2, float ror1, float ror2, float correctedtemp1, float correctedtemp2) {
+void seriallogger(float temp1, float temp2, float ror1, float ror2, float projectedtemp1, float projectedtemp2) {
   Serial.print(temp1);
   Serial.print(",");
   Serial.print(temp2);
@@ -26,9 +27,9 @@ void seriallogger(float temp1, float temp2, float ror1, float ror2, float correc
   Serial.print(",");
   Serial.print(ror2);
   Serial.print(",");
-  Serial.print(correctedtemp1);
+  Serial.print(projectedtemp1);
   Serial.print(",");
-  Serial.println(correctedtemp2);
+  Serial.println(projectedtemp2);
 }
 
 void setup() {
@@ -47,8 +48,8 @@ void loop() {
   float temp2;
   float ror1;
   float ror2;
-  float correctedtemp1;
-  float correctedtemp2;
+  float projectedtemp1;
+  float projectedtemp2;
 
   temp1 = thermocouple1.readCelsius();
   temp2 = thermocouple2.readCelsius();
@@ -66,29 +67,29 @@ void loop() {
   counter++;
 
   if (ror1 >= 0) {
-    correctedtemp1 = (temp1 + (ror1 * RISEINERTIA));
+    projectedtemp1 = (temp1 + (ror1 * RISEINERTIA));
   }
   else {
-    correctedtemp1 = (temp1 + (ror1 * FALLINERTIA));
+    projectedtemp1 = (temp1 + (ror1 * FALLINERTIA));
   }
 
   if (ror2 >= 0) {
-    correctedtemp2 = (temp2 + (ror2 * RISEINERTIA));
+    projectedtemp2 = (temp2 + (ror2 * RISEINERTIA));
   }
   else {
-    correctedtemp2 = (temp2 + (ror2 * FALLINERTIA));
+    projectedtemp2 = (temp2 + (ror2 * FALLINERTIA));
   }
 
-  seriallogger(temp1,temp2,ror1,ror2,correctedtemp1,correctedtemp2);
+  seriallogger(temp1,temp2,ror1,ror2,projectedtemp1,projectedtemp2);
 
-  if (correctedtemp1  <= SV1) {
+  if (projectedtemp1  <= SV1) {
    digitalWrite(SSR2PIN, LOW); 
    digitalWrite(SSR1PIN, HIGH); 
   } 
   else {
      digitalWrite(SSR1PIN, LOW); 
 
-    if (correctedtemp2 <= SV2) {
+    if (projectedtemp2 <= SV2) {
      digitalWrite(SSR2PIN, HIGH); 
     }
     else {
