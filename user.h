@@ -20,11 +20,12 @@
 // Delay time between temperature readings
 // from the temperature sensor (ms).
 // (must be larger than LOOP_PERIOD_MS)
-#define READING_PERIOD_MS 10
+// MAX6675 takes about 200 ms to convert
+#define READING_PERIOD_MS 200
 
 // How many readings are taken to determine a mean temperature.
 // accounts for the thermocouple noise
-#define NUMREADINGS 100
+#define NUMREADINGS 10
 
 // delay between 2 control updates
 // (must be larger than LOOP_PERIOD_MS)
