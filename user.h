@@ -14,14 +14,22 @@
 #define RISEINERTIA 3 //how long it takes the system to stop rising (in min)
 #define FALLINERTIA 1 //how long it takes the system to stop falling (in min)
 
-#define SAMPLING 5 //loops to calculate ror
+// cycle time, in ms
+#define LOOP_PERIOD_MS 1
 
 // Delay time between temperature readings
 // from the temperature sensor (ms).
-#define DELAY_TIME 20
+// (must be larger than LOOP_PERIOD_MS)
+// MAX6675 takes about 200 ms to convert
+#define READING_PERIOD_MS 200
 
 // How many readings are taken to determine a mean temperature.
-#define READINGS 10
+// accounts for the thermocouple noise
+#define NUMREADINGS 10
+
+// delay between 2 control updates
+// (must be larger than LOOP_PERIOD_MS)
+#define CONTROL_UPDATE_PERIOD_MS 2000
 
 // Pin mapping 
 // Common SPI pins 
