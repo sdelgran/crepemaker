@@ -25,7 +25,7 @@
 
 // How many readings are taken to determine a mean temperature.
 // accounts for the thermocouple noise
-#define NUMREADINGS 8
+#define NUMREADINGS 16
 
 // delay between 2 control updates
 // (must be larger than LOOP_PERIOD_MS)
