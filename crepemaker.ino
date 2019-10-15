@@ -6,6 +6,8 @@
 // libraries to be installed from the library manager
 #include "max6675.h"
 
+#include "math.h"
+
 // global variables and objects
 MAX6675 thermocouple1(CLKPIN, CS1PIN, DOPIN);
 MAX6675 thermocouple2(CLKPIN, CS2PIN, DOPIN);
@@ -14,6 +16,10 @@ MAX6675 thermocouple2(CLKPIN, CS2PIN, DOPIN);
 float previoustemp1 = 0;
 float previoustemp2 = 0;
 unsigned long lastControlUpdate = 0; // last time controls were updated
+float control1 = 0; // how much (0..1) of the heating cycle is the 1st heater switched on
+float control2 = 0;
+byte on1 = 0; // whether the 1st heater is currently switched on
+byte on2 = 0;
 
 // variables for the moving averages on temperature readings
 float tempReadings1[NUMREADINGS]; // the temperature readings from the analog input
@@ -25,7 +31,7 @@ float tempReadingsTotal2 = 0;
 float temp1; // the average
 float temp2;
 
-void seriallogger(float temp1, float temp2, float ror1, float ror2, float projectedtemp1, float projectedtemp2, byte control) {
+void seriallogger(float temp1, float temp2, float ror1, float ror2, float projectedtemp1, float projectedtemp2, float control1, float control2) {
   Serial.print(temp1);
   Serial.print(",");
   Serial.print(temp2);
@@ -38,7 +44,9 @@ void seriallogger(float temp1, float temp2, float ror1, float ror2, float projec
   Serial.print(",");
   Serial.print(projectedtemp2);
   Serial.print(",");
-  Serial.print(control); 
+  Serial.print(control1);
+  Serial.print(",");
+  Serial.print(control2);
 }
 
 void setup() {
@@ -113,9 +121,18 @@ void updateControls()
   timeelapsed = (millis() - lastControlUpdate);
 
   if (timeelapsed < CONTROL_UPDATE_PERIOD_MS) {
-    if (((SV1 - projectedtemp1) <= 20) and (timeelapsed >= (CONTROL_UPDATE_PERIOD_MS/2))) {
-      digitalWrite(SSR1PIN, LOW);
+    if (on1 == 1 && timeelapsed > control1 * CONTROL_UPDATE_PERIOD_MS) {
+      stop1();
+
+      if (control2 > 0) {
+        start2();
+      }
     }
+
+    if (on2 == 1 && timeelapsed > (control1 + control2) * CONTROL_UPDATE_PERIOD_MS) {
+      stop2();
+    }
+
     return;
   }
 
@@ -140,24 +157,51 @@ void updateControls()
     projectedtemp2 = (temp2 + (ror2 * FALLINERTIA));
   }
 
-  byte control = 0;
+  // proportional controls
+  control1 = max(0, min(1, (SV1 - projectedtemp1) / PROPORTIONAL_TEMP_RANGE));
+  control2 = max(0, min(1, (SV2 - projectedtemp2) / PROPORTIONAL_TEMP_RANGE));
 
-  if (projectedtemp1 <= SV1) {
-    digitalWrite(SSR2PIN, LOW);
-    digitalWrite(SSR1PIN, HIGH);
-    control = 1;
+  // 1st heater takes priority, 2nd heater takes what is left
+  control2 = min(control2, 1 - control1);
+
+  // use steps of MINIMAL_SSR_MS to avoid short switches
+  control1 = roundf(control1 * CONTROL_UPDATE_PERIOD_MS / MINIMAL_SSR_MS) * MINIMAL_SSR_MS / CONTROL_UPDATE_PERIOD_MS;
+  control2 = roundf(control2 * CONTROL_UPDATE_PERIOD_MS / MINIMAL_SSR_MS) * MINIMAL_SSR_MS / CONTROL_UPDATE_PERIOD_MS;
+
+  if (control1 > 0) {
+    start1();
+    stop2();
   }
   else {
-    digitalWrite(SSR1PIN, LOW);
+    stop1();
 
-    if (projectedtemp2 <= SV2) {
-      digitalWrite(SSR2PIN, HIGH);
-      control = 2;
+    if (control2 > 0) {
+      start2();
     }
     else {
-      digitalWrite(SSR2PIN, LOW);
+      stop2();
     }
   }
 
-  seriallogger(temp1, temp2, ror1, ror2, projectedtemp1, projectedtemp2, control);
+  seriallogger(temp1, temp2, ror1, ror2, projectedtemp1, projectedtemp2, control1, control2);
+}
+
+void start1() {
+  digitalWrite(SSR1PIN, HIGH);
+  on1 = 1;
+}
+
+void stop1() {
+  digitalWrite(SSR1PIN, LOW);
+  on1 = 0;
+}
+
+void start2() {
+  digitalWrite(SSR2PIN, HIGH);
+  on2 = 1;
+}
+
+void stop2() {
+  digitalWrite(SSR2PIN, LOW);
+  on2 = 0;
 }
