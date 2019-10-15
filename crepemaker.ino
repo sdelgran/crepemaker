@@ -38,7 +38,7 @@ void seriallogger(float temp1, float temp2, float ror1, float ror2, float projec
   Serial.print(",");
   Serial.print(projectedtemp2);
   Serial.print(",");
-  Serial.println(control);
+  Serial.print(control); 
 }
 
 void setup() {
@@ -113,6 +113,9 @@ void updateControls()
   timeelapsed = (millis() - lastControlUpdate);
 
   if (timeelapsed < CONTROL_UPDATE_PERIOD_MS) {
+    if (((SV1 - projectedtemp1) <= 20) and (timeelapsed >= (CONTROL_UPDATE_PERIOD_MS/2))) {
+      digitalWrite(SSR1PIN, LOW);
+    }
     return;
   }
 

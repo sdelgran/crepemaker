@@ -8,7 +8,7 @@
 // Next compile the sketch and upload it to the Arduino.
 
 // Set values 
-#define SV1 200 //Set temperature for plate 1 (in Celsius)
+#define SV1 205 //Set temperature for plate 1 (in Celsius)
 #define SV2 200 //Set temperature for plate 2 (in Celsius)
 
 #define RISEINERTIA 3 //how long it takes the system to stop rising (in min)
@@ -21,11 +21,11 @@
 // from the temperature sensor (ms).
 // (must be larger than LOOP_PERIOD_MS)
 // MAX6675 takes about 200 ms to convert
-#define READING_PERIOD_MS 200
+#define READING_PERIOD_MS 250
 
 // How many readings are taken to determine a mean temperature.
 // accounts for the thermocouple noise
-#define NUMREADINGS 10
+#define NUMREADINGS 8
 
 // delay between 2 control updates
 // (must be larger than LOOP_PERIOD_MS)
