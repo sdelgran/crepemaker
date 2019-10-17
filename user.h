@@ -25,11 +25,18 @@
 
 // How many readings are taken to determine a mean temperature.
 // accounts for the thermocouple noise
-#define NUMREADINGS 8
+#define NUMREADINGS 16
 
 // delay between 2 control updates
 // (must be larger than LOOP_PERIOD_MS)
 #define CONTROL_UPDATE_PERIOD_MS 2000
+
+// minimal time for the SSR to be on
+#define MINIMAL_SSR_MS 100
+
+// the temperature difference from the objective when a full heating cycle is needed, in Celsius
+// when the temperature difference is lower than this value, the heating cycle length is proportional to this difference
+#define PROPORTIONAL_TEMP_RANGE 20.0
 
 // Pin mapping 
 // Common SPI pins 
