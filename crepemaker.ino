@@ -46,7 +46,7 @@ void seriallogger(float temp1, float temp2, float ror1, float ror2, float projec
   Serial.print(",");
   Serial.print(control1);
   Serial.print(",");
-  Serial.print(control2);
+  Serial.println(control2);
 }
 
 void setup() {
@@ -54,6 +54,10 @@ void setup() {
   pinMode(SSR2PIN, OUTPUT);
 
   Serial.begin(BAUD);
+
+  // Make sure everything is off by default
+  stop1();
+  stop2();
 
   // wait for MAX chips to stabilize
   delay(500);
@@ -117,6 +121,7 @@ void updateControls()
   float ror2;
   float projectedtemp1;
   float projectedtemp2;
+  float steps; 
 
   timeelapsed = (millis() - lastControlUpdate);
 
@@ -165,12 +170,15 @@ void updateControls()
   control2 = min(control2, 1 - control1);
 
   // use steps of MINIMAL_SSR_MS to avoid short switches
-  control1 = roundf(control1 * CONTROL_UPDATE_PERIOD_MS / MINIMAL_SSR_MS) * MINIMAL_SSR_MS / CONTROL_UPDATE_PERIOD_MS;
-  control2 = roundf(control2 * CONTROL_UPDATE_PERIOD_MS / MINIMAL_SSR_MS) * MINIMAL_SSR_MS / CONTROL_UPDATE_PERIOD_MS;
+  steps = round(control1 * CONTROL_UPDATE_PERIOD_MS / MINIMAL_SSR_MS);
+  control1 = steps * MINIMAL_SSR_MS / CONTROL_UPDATE_PERIOD_MS;
+  
+  steps = round(control2 * CONTROL_UPDATE_PERIOD_MS / MINIMAL_SSR_MS);
+  control2 = steps * MINIMAL_SSR_MS / CONTROL_UPDATE_PERIOD_MS;
 
   if (control1 > 0) {
-    start1();
     stop2();
+    start1();
   }
   else {
     stop1();
@@ -182,7 +190,6 @@ void updateControls()
       stop2();
     }
   }
-
   seriallogger(temp1, temp2, ror1, ror2, projectedtemp1, projectedtemp2, control1, control2);
 }
 

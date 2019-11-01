@@ -7,9 +7,9 @@
 // First, load and edit this sketch in the Arduino IDE.
 // Next compile the sketch and upload it to the Arduino.
 
-// Set values 
+// Set values (SV1 is right, SV2 is on the left)
 #define SV1 205 //Set temperature for plate 1 (in Celsius)
-#define SV2 200 //Set temperature for plate 2 (in Celsius)
+#define SV2 215 //Set temperature for plate 2 (in Celsius)
 
 #define RISEINERTIA 3 //how long it takes the system to stop rising (in min)
 #define FALLINERTIA 1 //how long it takes the system to stop falling (in min)
@@ -36,7 +36,7 @@
 
 // the temperature difference from the objective when a full heating cycle is needed, in Celsius
 // when the temperature difference is lower than this value, the heating cycle length is proportional to this difference
-#define PROPORTIONAL_TEMP_RANGE 20.0
+#define PROPORTIONAL_TEMP_RANGE 10.0
 
 // Pin mapping 
 // Common SPI pins 
